@@ -1,11 +1,5 @@
-#register
-# - first_name,last_name, password, email
-# - generating userId
 
-#login
-# - username or email, and password
-
-#***********bank operarion*****************
+#***********ATM Authentication and basic bank operarion*****************
 
 import random
 import datetime, time
