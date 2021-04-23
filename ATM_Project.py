@@ -1,10 +1,21 @@
 
 #***********ATM Authentication and basic bank operarion*****************
 
+import os
 import random
 import datetime, time
+import database
+import validation
 
-database = {}
+currentBalance = 1000
+logout = 0
+
+#Program initialization
+
+def generatingAccountNumber():
+    return random.randrange(1111111111,9999999999)
+
+accountNumber = generatingAccountNumber()
 
 def init():
     isvalidOptionSelected = False
@@ -26,21 +37,33 @@ def init():
     
 def login():
     print("*******Login*******")
-    accountNumberFromUser = int(input("what is your accountNumber? \n"))
-    password = input("What is your password? \n")
-        
-    for accountNumber,userDetails in database.items():
-        if(accountNumber == accountNumberFromUser):
-            
-            if(userDetails[3] == password):
-                print('Welcome ' + userDetails[0])
-                print(time.strftime("%a, %d %b %Y %H:%M:%S \n"))
-                
-        else:
-                print("Invalid account or password")
-                login()
+    accountNumberFromUser = input("what is your accountNumber? \n")
 
-    bankOperation()
+    is_valid_account_number = validation.account_number_validation(accountNumberFromUser)
+
+    if is_valid_account_number:
+        
+        password = input("What is your password? \n")
+  
+        
+        user = database.authenticated_user(accountNumberFromUser, password);
+
+        if user:
+            print('Welcome %s, %s' % (user[0],user[1]))
+            print(time.strftime("%a, %d %b %Y %H:%M:%S \n"))
+            f = open('Data/auth_session/' + str(accountNumberFromUser) + ".txt", "x")
+            f.write("User logged: " + str(time.strftime("%a, %d %b %Y %H:%M:%S")));
+            f.close()
+
+            bankOperation(currentBalance)
+
+        print('Invalid account or password')
+        login()
+        
+                    
+    else:
+        print("Invalid account number, please try again")
+        login()
 
 
 def register():
@@ -51,18 +74,26 @@ def register():
     email = input("What is your email address? \n")
     password = input("Create a password \n")
      
-    accountNumber = generatingAccountNumber()
-    database[accountNumber] = [first_name, last_name, email, password]
-    #userDetails = database
-    print("Account setup successful")
-    print("Your account number is %d \n" %accountNumber)
-    login()
+    #accountNumber = generatingAccountNumber()
+
+    is_user_created = database.creat(accountNumber,first_name, last_name, email, password, currentBalance)
+
+
+    if is_user_created:
+
+        print("Account setup successful")
+        print("Your account number is %d \n" %accountNumber)
+        login()
+
+    else:
+        print("Please try again")
+        register()
 
 
 def withdraw(currentBalance):
 
-    print('Your balance is %d' % currentBalance)
-    withdrawal = int(input('How much would you like to withdraw: \n'))
+    print('Your available balance is %d' % currentBalance)
+    withdrawal = int(input('How much would you like to withdraw: \n \n'))
 
     if(withdrawal > currentBalance):
         print('You do not have enough balance \n')
@@ -70,49 +101,51 @@ def withdraw(currentBalance):
 
 
     elif(withdrawal <= currentBalance):
-        print('Please take your cash \n')
-        bankOperation()
+        currentBalance -= withdrawal
+        print('Please take your cash, remaining balance is %d. \n' %currentBalance)
+        bankOperation(currentBalance)
     else:
         print('wrong input')
-        withdraw()
+        withdraw(currentBalance)
             
 
 def Deposit(currentBalance):
     print('How much would you like to deposit?')
     deposit = int(input(''))
     currentBalance += deposit
-    print('Your currenct balance is %d \n' %currentBalance)
-    bankOperation()
+    print('Your currenct balance is %d. \n' %currentBalance)
+    bankOperation(currentBalance)
 
 def logout():
     print('Logged out. \n')
     init()
 
 
-def bankOperation():
+def bankOperation(currentBalance):
     print('What would you like to do? \n')
     print('1. Withdraw \n''2. Deposit \n''3. logout \n' '4. Exit \n')
     selectedOption = int(input(''))
-    balance = 1000
-   
+
 
     if(selectedOption == 1):
-        withdraw(balance)
+        withdraw(currentBalance)
 
     elif(selectedOption == 2):
-        Deposit(balance)
+        Deposit(currentBalance)
 
 
     elif(selectedOption == 3):
+        database.delete(accountNumber)
         logout()
 
     elif(selectedOption == 4):
         print("Thank you for visiting us! \n")
-        exit
+        database.delete(accountNumber)
+        exit()
 
     else:
         print('Invalid selection, please try again')
-        bankOperation()
+        bankOperation(currentBalance)
 
     
 def generatingAccountNumber():
